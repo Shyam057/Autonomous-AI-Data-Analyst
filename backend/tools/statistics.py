@@ -1,9 +1,12 @@
+import pandas as pd
+
+
 def get_column_statistics(df,column_name):
     if column_name not in df.columns:
         return f"Column '{column_name}' does not exist."
 
     column=df[column_name]
-    if column.dtype == "object":
+    if not pd.api.types.is_numeric_dtype(column):
         return {
             "column":column_name,
             "type":"categorical",

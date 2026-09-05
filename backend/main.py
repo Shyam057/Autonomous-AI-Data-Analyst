@@ -1,4 +1,7 @@
-from tools.data_loader import load_dataset
+try:
+    from backend.tools.data_loader import load_dataset
+except ModuleNotFoundError:
+    from tools.data_loader import load_dataset
 
 def main():
 

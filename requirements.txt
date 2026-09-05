@@ -1,0 +1,8 @@
+pandas
+openpyxl
+matplotlib
+streamlit
+langgraph
+langchain-core
+langchain-groq
+python-dotenv
