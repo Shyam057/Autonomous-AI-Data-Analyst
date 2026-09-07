@@ -1,5 +1,6 @@
 import html
 import os
+import re
 from pathlib import Path
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
@@ -137,6 +138,17 @@ def answer_question(df: pd.DataFrame, question: str, drivers: list[str]) -> str:
     return run_question(df, question)["answer"]
 
 
+def is_visualization_request(question: str) -> bool:
+    """Identify common requests for a chart, including requests without a column."""
+    return bool(
+        re.search(
+            r"\b(chart|charts|graph|graphs|plot|plots|visual|visualize|visualization|"
+            r"histogram|distribution)\b",
+            question.casefold(),
+        )
+    )
+
+
 def render_analysis(df: pd.DataFrame, question: str):
     rows, columns = df.shape
     missing_percent = df.isnull().sum().sum() / max(rows * columns, 1) * 100
@@ -151,8 +163,7 @@ def render_analysis(df: pd.DataFrame, question: str):
 
     st.markdown('<div class="section-heading">AI answer</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="answer-panel"><div class="answer-label">Question answered</div><div class="answer-text">{html.escape(insight)}</div></div>', unsafe_allow_html=True)
-    visualization_words = ("show", "plot", "chart", "visual", "distribution", "histogram", "bar chart")
-    if any(word in question.lower() for word in visualization_words):
+    if is_visualization_request(question):
         render_visualization(df, question)
 
 

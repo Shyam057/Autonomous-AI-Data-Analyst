@@ -299,7 +299,7 @@ def choose_tool(df: pd.DataFrame, question: str) -> str:
         return "dataset_overview"
     if "churn" in text and any(word in text for word in ("increasing", "increase", "rising", "trend", "over time")):
         return "unsupported_time_analysis"
-    if "distribution" in text or "histogram" in text or "bar chart" in text or "visual" in text:
+    if any(word in text for word in ("chart", "graph", "plot", "visual", "visualization", "histogram", "distribution")):
         return "visualization_request"
     if ("word" in text or "words" in text) and ("spam" in text or _find_label_column(df)):
         return "frequent_words"
