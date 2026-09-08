@@ -1,7 +1,6 @@
 import html
 import os
 import re
-from pathlib import Path
 
 os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
 
@@ -9,12 +8,9 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
-from backend.tools.data_loader import load_dataset
 from backend.tools.question_tools import answer_question as run_question
 from backend.tools.question_tools import infer_visualization_column
 
-
-DEFAULT_DATASET = Path("data/Telco_customer_churn.xlsx")
 
 st.set_page_config(page_title="AI Data Analyst", page_icon="🤖", layout="centered")
 
@@ -59,11 +55,6 @@ st.markdown(
 
 
 @st.cache_data(show_spinner=False)
-def read_default_dataset(file_path: str) -> pd.DataFrame:
-    return load_dataset(file_path)
-
-
-@st.cache_data(show_spinner=False)
 def read_uploaded_dataset(uploaded_file) -> pd.DataFrame:
     if uploaded_file.name.lower().endswith(".csv"):
         for encoding in ("utf-8-sig", "utf-8", "cp1252", "latin1"):
@@ -74,25 +65,6 @@ def read_uploaded_dataset(uploaded_file) -> pd.DataFrame:
                 continue
         raise ValueError("Could not decode this CSV. Please save it as UTF-8 or Latin-1 and upload it again.")
     return pd.read_excel(uploaded_file)
-
-
-def churn_drivers(df: pd.DataFrame) -> list[str]:
-    if "Churn Label" not in df.columns:
-        numeric_columns = [column for column in df.columns if pd.api.types.is_numeric_dtype(df[column])]
-        categorical_columns = [column for column in df.columns if not pd.api.types.is_numeric_dtype(df[column])]
-        return [str(column) for column in (numeric_columns + categorical_columns)[:3]] or ["available features"]
-    churned = df["Churn Label"].astype(str).str.lower().eq("yes")
-    candidates = []
-    for column in ("Contract", "Monthly Charges", "Tenure Months"):
-        if column in df.columns:
-            if pd.api.types.is_numeric_dtype(df[column]):
-                score = abs(df.loc[churned, column].mean() - df.loc[~churned, column].mean())
-            else:
-                score = df.groupby(column, dropna=False)["Churn Label"].apply(
-                    lambda values: values.astype(str).str.lower().eq("yes").mean()
-                ).max()
-            candidates.append((score, column))
-    return [column for _, column in sorted(candidates, reverse=True)] or ["Churn Label"]
 
 
 def render_visualization(df: pd.DataFrame, question: str):
@@ -182,7 +154,7 @@ def main():
         )
         question = st.text_area(
             "Question",
-            placeholder="Example: Why is customer churn increasing?",
+            placeholder="Example: What are the most common values in each category?",
             height=90,
             label_visibility="collapsed",
             key="analysis_question",
@@ -196,7 +168,10 @@ def main():
 
     if st.session_state.analysis_requested:
         try:
-            df = read_uploaded_dataset(uploaded_file) if uploaded_file is not None else read_default_dataset(str(DEFAULT_DATASET))
+            if uploaded_file is None:
+                st.error("Upload a CSV or Excel dataset before starting the analysis.")
+                return
+            df = read_uploaded_dataset(uploaded_file)
             render_analysis(df, st.session_state.get("question", ""))
         except Exception as exc:
             st.error(f"Could not analyze dataset: {exc}")
